@@ -73,4 +73,64 @@ public class AuthController : ControllerBase
             return BadRequest(new { success = false, message = result.message });
         }
     }
+
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto)
+    {
+        try
+        {
+            await _authService.ForgotPasswordAsync(dto);
+            return Ok(new
+            {
+                success = true,
+                message = "Password reset email sent successfully."
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
+    [HttpGet("verify-forgot-password")]
+    public async Task<IActionResult> VerifyForgotPassword(string email, string token)
+    {
+        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(token))
+        {
+            return BadRequest(new { success = false, message = "Email and token are required." });
+        }
+        var result = await _authService.VerifyForgotPasswordAsync(email, token);
+        if (result.success)
+        {
+            return Ok(new { success = true, message = result.message });
+        }
+        else
+        {
+            return BadRequest(new { success = false, message = result.message });
+        }
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
+    {
+        if (string.IsNullOrEmpty(dto.Email) || string.IsNullOrEmpty(dto.Token) || string.IsNullOrEmpty(dto.NewPassword))
+        {
+            return BadRequest(new { success = false, message = "Email, token, and new password are required." });
+        }
+
+        try
+        {
+            var result = await _authService.ResetPasswordAsync(dto);
+            if (result.success)
+            {
+                return Ok(new { success = true, message = result.message });
+            }
+            return BadRequest(new { success = false, message = result.message });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
 }
