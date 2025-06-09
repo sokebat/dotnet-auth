@@ -12,7 +12,7 @@ using dotnet_auth.data;
 namespace dotnet_auth.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250608140053_initialdb")]
+    [Migration("20250609130514_initialdb")]
     partial class initialdb
     {
         /// <inheritdoc />

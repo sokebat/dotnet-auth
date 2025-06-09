@@ -1,4 +1,5 @@
-﻿using dotnet_auth.Domain.Dto;
+﻿// AuthController.cs
+using dotnet_auth.Domain.Dto;
 using dotnet_auth.Domain.Intereface;
 using Microsoft.AspNetCore.Mvc;
 
@@ -113,11 +114,6 @@ public class AuthController : ControllerBase
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
     {
-        if (string.IsNullOrEmpty(dto.Email) || string.IsNullOrEmpty(dto.Token) || string.IsNullOrEmpty(dto.NewPassword))
-        {
-            return BadRequest(new { success = false, message = "Email, token, and new password are required." });
-        }
-
         try
         {
             var result = await _authService.ResetPasswordAsync(dto);
@@ -133,4 +129,36 @@ public class AuthController : ControllerBase
         }
     }
 
+    [HttpPost("external-login")]
+    public async Task<IActionResult> ExternalLogin([FromBody] ExternalLoginDto dto)
+    {
+        try
+        {
+            var properties = await _authService.ExternalLoginAsync(dto.Provider, dto.ReturnUrl);
+            return Challenge(properties, dto.Provider);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
+    [HttpGet("external-login-callback")]
+    public async Task<IActionResult> ExternalLoginCallback()
+    {
+        try
+        {
+            var (token, isNewUser) = await _authService.ExternalLoginCallbackAsync();
+            return Ok(new
+            {
+                success = true,
+                message = isNewUser ? "Registration and login successful." : "Login successful.",
+                data = new { token }
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
 }
