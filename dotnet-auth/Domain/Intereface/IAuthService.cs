@@ -10,7 +10,7 @@ namespace dotnet_auth.Domain.Intereface
         Task ForgotPasswordAsync(ForgotPasswordDto dto);
         Task<(bool success, string message)> ResetPasswordAsync(ResetPasswordDto dto);
         Task<(bool success, string message)> VerifyEmailAsync(string token, string email);
-        Task<(bool success, string message)> VerifyForgotPasswordAsync(string Email, string Token);
+       
         Task<AuthenticationProperties> ExternalLoginAsync(string provider, string redirectUrl);
         Task<(string token, bool isNewUser)> ExternalLoginCallbackAsync();
     }

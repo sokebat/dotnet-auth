@@ -24,7 +24,7 @@ public class AuthController : ControllerBase
             {
                 success = true,
                 message = "Registration successful. Please verify your email.",
-                data = new { verificationToken = token }
+                data = new {  }
             });
         }
         catch (Exception ex)
@@ -43,7 +43,7 @@ public class AuthController : ControllerBase
             {
                 success = true,
                 message = "Login successful.",
-                data = new { token }
+                data = new {   }
             });
         }
         catch (UnauthorizedAccessException ex)
@@ -92,25 +92,8 @@ public class AuthController : ControllerBase
             return BadRequest(new { success = false, message = ex.Message });
         }
     }
-
-    [HttpGet("verify-forgot-password")]
-    public async Task<IActionResult> VerifyForgotPassword(string email, string token)
-    {
-        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(token))
-        {
-            return BadRequest(new { success = false, message = "Email and token are required." });
-        }
-        var result = await _authService.VerifyForgotPasswordAsync(email, token);
-        if (result.success)
-        {
-            return Ok(new { success = true, message = result.message });
-        }
-        else
-        {
-            return BadRequest(new { success = false, message = result.message });
-        }
-    }
-
+ 
+  
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
     {

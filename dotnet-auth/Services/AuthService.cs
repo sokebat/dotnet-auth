@@ -1,15 +1,11 @@
-﻿// AuthService.cs
-using dotnet_auth.Domain.Dto;
+﻿using dotnet_auth.Domain.Dto;
 using dotnet_auth.Domain.Intereface;
 using dotnet_auth.Domain.Model;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using System.Web;
+
 
 namespace dotnet_auth.Services
 {
@@ -18,24 +14,25 @@ namespace dotnet_auth.Services
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _config;
         private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IEmailService _emailService;
         private readonly IJwtService _jwtService;
+        private readonly ILogger<AuthService> _loger;
 
         public AuthService(
             UserManager<ApplicationUser> userManager,
             IConfiguration config,
-            SignInManager<ApplicationUser> signInManager,
-            IHttpContextAccessor httpContextAccessor,
+            SignInManager<ApplicationUser> signInManager,           
             IEmailService emailService,
-            IJwtService jwtService)
+            IJwtService jwtService,
+            ILogger<AuthService> loger)
+
         {
             _userManager = userManager;
             _config = config;
-            _signInManager = signInManager;
-            _httpContextAccessor = httpContextAccessor;
+            _signInManager = signInManager;           
             _emailService = emailService;
             _jwtService = jwtService;
+            _loger = loger;
         }
 
         public async Task<string> RegisterAsync(RegisterDto dto)
@@ -46,6 +43,7 @@ namespace dotnet_auth.Services
                 throw new Exception("Email is already registered.");
             }
 
+           
             var user = new ApplicationUser
             {
                 Email = dto.Email,
@@ -59,14 +57,14 @@ namespace dotnet_auth.Services
             }
 
             string token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            string encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
-            var httpContext = _httpContextAccessor.HttpContext
-                ?? throw new InvalidOperationException("HttpContext is not available.");
+            string encodedToken = Uri.EscapeDataString(token);
+            _loger.LogInformation("Encoded token: {EncodedToken}", encodedToken);
 
-            var request = httpContext.Request;
-            string baseUrl = $"{request.Scheme}://{request.Host}";
-            string verificationUrl = $"{baseUrl}/api/auth/verify-email?token={encodedToken}&email={Uri.EscapeDataString(dto.Email)}";
+
+            _loger.LogInformation("Encoded token: {EncodedToken}", encodedToken);
+            var baseUrl = "http://localhost:3000";
+            string verificationUrl = $"{baseUrl}/auth/verify-email?token={encodedToken}&email={dto.Email}";
 
             var placeholders = new Dictionary<string, string>
             {
@@ -81,7 +79,7 @@ namespace dotnet_auth.Services
                 placeholders
             );
 
-            return encodedToken;
+            return token;
         }
 
         public async Task<string> LoginAsync(LoginDto dto)
@@ -106,9 +104,14 @@ namespace dotnet_auth.Services
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null) return (false, "User not found.");
 
-            var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
-            var result = await _userManager.ConfirmEmailAsync(user, decodedToken);
 
+            string sanitizedToken = token.Replace(" ", "+");
+
+            _loger.LogInformation("Sanitized token: {Token}", sanitizedToken);
+
+            var result = await _userManager.ConfirmEmailAsync(user, sanitizedToken);
+                 
+          
             return result.Succeeded
                 ? (true, "Email verified successfully.")
                 : (false, "Invalid verification token.");
@@ -121,14 +124,10 @@ namespace dotnet_auth.Services
                 return;
 
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-
-            var httpContext = _httpContextAccessor.HttpContext
-                ?? throw new InvalidOperationException("HttpContext is not available.");
-
-            var request = httpContext.Request;
-            string baseUrl = $"{request.Scheme}://{request.Host}";
-            string resetUrl = $"{baseUrl}/api/auth/verify-forgot-password?token={encodedToken}&email={Uri.EscapeDataString(dto.Email)}";
+            string encodedToken = Uri.EscapeDataString(token); 
+                
+            string baseUrl = "http://localhost:3000";
+            string resetUrl = $"{baseUrl}/auth/reset-password?token={encodedToken}&email={Uri.EscapeDataString(dto.Email)}";
 
             var placeholders = new Dictionary<string, string>
             {
@@ -144,29 +143,15 @@ namespace dotnet_auth.Services
             );
         }
 
-        public async Task<(bool success, string message)> VerifyForgotPasswordAsync(string email, string token)
-        {
-            var user = await _userManager.FindByEmailAsync(email);
-            if (user == null) return (false, "User not found.");
-
-            var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
-            return await _userManager.VerifyUserTokenAsync(
-                user,
-                _userManager.Options.Tokens.PasswordResetTokenProvider,
-                "ResetPassword",
-                decodedToken
-            )
-                ? (true, "Token verified successfully.")
-                : (false, "Invalid or expired token.");
-        }
+ 
 
         public async Task<(bool success, string message)> ResetPasswordAsync(ResetPasswordDto dto)
         {
             var user = await _userManager.FindByEmailAsync(dto.Email);
             if (user == null) return (false, "User not found.");
 
-            var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(dto.Token));
-            var result = await _userManager.ResetPasswordAsync(user, decodedToken, dto.NewPassword);
+            
+            var result = await _userManager.ResetPasswordAsync(user, dto.Token, dto.NewPassword);
 
             return result.Succeeded
                 ? (true, "Password reset successfully.")

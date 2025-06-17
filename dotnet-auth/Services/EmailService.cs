@@ -19,23 +19,16 @@ namespace dotnet_auth.Services
             IWebHostEnvironment hostingEnvironment,
             ILogger<EmailService> logger)
         {
-            _emailSettings = emailSettings.Value ?? throw new ArgumentNullException(nameof(emailSettings));
-            _hostingEnvironment = hostingEnvironment ?? throw new ArgumentNullException(nameof(hostingEnvironment));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _emailSettings = emailSettings.Value;
+            _hostingEnvironment = hostingEnvironment ;
+            _logger = logger;
         }
 
         public async Task SendEmailAsync(string toEmail, string subject, string templateFileName, Dictionary<string, string>? placeholders = null)
         {
             try
             {
-                // Validate inputs
-                if (string.IsNullOrWhiteSpace(toEmail))
-                    throw new ArgumentException("Recipient email cannot be empty.", nameof(toEmail));
-                if (string.IsNullOrWhiteSpace(subject))
-                    throw new ArgumentException("Subject cannot be empty.", nameof(subject));
-                if (string.IsNullOrWhiteSpace(templateFileName))
-                    throw new ArgumentException("Template file name cannot be empty.", nameof(templateFileName));
-
+            
                 // Load email template
                 string templatePath = Path.Combine(_hostingEnvironment.ContentRootPath, "EmailTemplates", templateFileName);
                 if (!File.Exists(templatePath))

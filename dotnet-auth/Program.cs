@@ -69,12 +69,23 @@ builder.Services.Configure<EmailSettingOptions>(builder.Configuration.GetSection
 
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
-builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("cors", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+              
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -82,8 +93,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("cors");
 
-app.UseAuthentication(); // Ensure authentication middleware is added
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
